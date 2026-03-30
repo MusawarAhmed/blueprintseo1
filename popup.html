@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root {
+      --bg-navy: #0a192f;
+      --accent-cyan: #64ffda;
+      --text-white: #e6f1ff;
+      --border-blue: #233554;
+    }
+
+    body {
+      width: 250px;
+      margin: 0;
+      padding: 20px;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-navy);
+      color: var(--text-white);
+    }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 25px;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      color: var(--accent-cyan);
+      letter-spacing: 0.5px;
+    }
+
+    p {
+      font-size: 12px;
+      margin: 0;
+      color: #8892b0;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: var(--border-blue);
+      border-radius: 8px;
+      border: 1px solid rgba(100, 255, 218, 0.1);
+    }
+
+    .label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Toggle Switch Styles */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #112240;
+      transition: .4s;
+      border-radius: 24px;
+      border: 1px solid var(--accent-cyan);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--text-white);
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-cyan);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+      background-color: var(--bg-navy);
+    }
+
+    .footer {
+      margin-top: 25px;
+      font-size: 10px;
+      text-align: center;
+      color: #495670;
+    }
+
+    .footer span {
+      color: var(--accent-cyan);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Blueprint SEO</h1>
+    <p>Visual DOM Inspector</p>
+  </div>
+
+  <div class="control-row">
+    <span class="label">Inspect Mode</span>
+    <label class="switch">
+      <input type="checkbox" id="mode-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="control-row" style="margin-top: 20px; border-bottom: 1px solid var(--border-blue); padding-bottom: 5px; background: transparent;">
+    <span class="label" style="font-size: 11px; opacity: 0.7; text-transform: uppercase;">Batch Highlights</span>
+  </div>
+
+  <div class="control-row" style="margin-top: 10px;">
+    <span class="label">Highlight DIVs</span>
+    <label class="switch">
+      <input type="checkbox" id="highlight-divs-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="control-row" style="margin-top: 10px;">
+    <span class="label">Highlight Headings</span>
+    <label class="switch">
+      <input type="checkbox" id="highlight-headings-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="control-row" style="margin-top: 10px;">
+    <span class="label">Highlight Images</span>
+    <label class="switch">
+      <input type="checkbox" id="highlight-images-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="footer">
+    Hover Blueprint SEO v1.0.0
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
