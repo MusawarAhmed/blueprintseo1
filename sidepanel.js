@@ -186,7 +186,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       item.classList.add('active');
       const targetPane = document.getElementById(tabId);
-      if (targetPane) targetPane.classList.add('active');
+      if (targetPane) {
+        targetPane.classList.add('active');
+        // Scroll to top when switching tabs
+        const contentArea = document.querySelector('.content-area');
+        if (contentArea) {
+          contentArea.scrollTop = 0;
+        }
+      }
 
       closeDrawer();
     });
@@ -913,7 +920,8 @@ document.addEventListener('DOMContentLoaded', () => {
             chrome.tabs.sendMessage(tab.id, { action: "GET_IMAGES" }, (imgRes) => {
               btnScanUniversal.innerText = 'Scan Page';
               
-              if (metaRes && headRes && kwRes && linkRes && imgRes) {
+              // Check if all responses have the required data
+              if (metaRes && metaRes.metadata && headRes && headRes.headings && kwRes && kwRes.text && linkRes && linkRes.links && imgRes && imgRes.images) {
                 lastLinksScanned = linkRes.links;
                 lastImagesScanned = imgRes.images;
                 currentAuditData = { 
@@ -925,12 +933,19 @@ document.addEventListener('DOMContentLoaded', () => {
                   url: scanUrl 
                 };
                 
-                // Pre-fill tabs
+                // Pre-fill tabs (don't pass parameters - functions get filters from HTML)
                 if (typeof displayMetadata === 'function') displayMetadata(metaRes.metadata);
                 if (typeof displayKeywords === 'function') displayKeywords(kwRes.text, metaRes.metadata);
-                if (typeof displayLinks === 'function') displayLinks('all');
+                if (typeof displayLinks === 'function') displayLinks();
                 if (typeof displayHeadings === 'function') displayHeadings(headRes.headings);
-                if (typeof displayImages === 'function') displayImages('all');
+                if (typeof displayImages === 'function') {
+                  // Reset to 'all' filter by default
+                  const imgFilterBtns = document.querySelectorAll('[data-img-filter]');
+                  imgFilterBtns.forEach(b => b.classList.remove('active'));
+                  const allBtn = document.querySelector('[data-img-filter="all"]');
+                  if (allBtn) allBtn.classList.add('active');
+                  displayImages('all');
+                }
                 
                 if (metaRes.metadata && metaRes.metadata.vitals) {
                     updateVitals(metaRes.metadata.vitals, linkRes.links);
@@ -943,17 +958,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 const extCount = linkRes.links.filter(l => l.type === 'External').length;
                 const miscCount = linkRes.links.length - (intCount + extCount);
 
-                document.getElementById('link-internal').innerText = intCount;
-                document.getElementById('link-external').innerText = extCount;
+                if (document.getElementById('link-internal')) document.getElementById('link-internal').innerText = intCount;
+                if (document.getElementById('link-external')) document.getElementById('link-external').innerText = extCount;
                 if (document.getElementById('link-misc')) document.getElementById('link-misc').innerText = miscCount;
 
-                document.getElementById('img-total').innerText = imgRes.images.length;
-                document.getElementById('img-noalt').innerText = imgRes.images.filter(i => !i.alt).length;
+                const imgCountEl = document.getElementById('img-total');
+                const imgAltEl = document.getElementById('img-noalt');
+                if (imgCountEl) imgCountEl.innerText = imgRes.images.length;
+                if (imgAltEl) imgAltEl.innerText = imgRes.images.filter(i => !i.alt).length;
+                
+                // Auto-switch to metadata tab to show results
+                const metaTab = document.querySelector('[data-tab=\"metadata\"]');
+                const metaPane = document.getElementById('metadata');
+                if (metaTab && metaPane) {
+                  const navItems = document.querySelectorAll('.nav-item');
+                  const tabPanes = document.querySelectorAll('.tab-pane');
+                  navItems.forEach(item => item.classList.remove('active'));
+                  tabPanes.forEach(pane => pane.classList.remove('active'));
+                  metaTab.classList.add('active');
+                  metaPane.classList.add('active');
+                  // Scroll to top when showing results
+                  const contentArea = document.querySelector('.content-area');
+                  if (contentArea) {
+                    contentArea.scrollTop = 0;
+                  }
+                }
+                
+                // Show success toast
+                showAuthSuccess('✓ Scan completed successfully!');
 
                 // Update specific badge states on dashboard
                 setTimeout(() => checkSiteArchitecture(metaRes.metadata), 500);
 
               } else {
+                // Log what failed for debugging
+                console.error('Scan failed. Response data:', {
+                  metaRes: metaRes?.metadata ? 'OK' : 'MISSING',
+                  headRes: headRes?.headings ? 'OK' : 'MISSING',
+                  kwRes: kwRes?.text ? 'OK' : 'MISSING',
+                  linkRes: linkRes?.links ? 'OK' : 'MISSING',
+                  imgRes: imgRes?.images ? 'OK' : 'MISSING'
+                });
                 alert("Could not reach page content. If you just navigated, please wait a moment and click Scan again.");
               }
             });
@@ -1343,46 +1388,335 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function copyFullReport() {
+    // Check if user is pro
+    if (!isUserPro) {
+      const originalText = btnCopyReport.innerHTML;
+      btnCopyReport.innerHTML = '🛡️ PRO Feature';
+      setTimeout(() => btnCopyReport.innerHTML = originalText, 2000);
+      return;
+    }
+
     if (!currentAuditData) return;
     
-    const { meta, headings, totalScore, calculatedFixes, url } = currentAuditData;
+    const { meta, headings, links, images, text, url } = currentAuditData;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString();
+    const timeStr = now.toLocaleTimeString();
     
-    const report = `
-Blueprint SEO Audit Report v1.1.0
----------------------------------
-URL: ${url}
-DATE: ${new Date().toLocaleString()}
+    // Extract domain from URL
+    let domain = url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+    
+    // Calculate statistics
+    const totalImages = images?.length || 0;
+    const brokenImages = images?.filter(img => img.isBroken)?.length || 0;
+    const imagesWithoutAlt = images?.filter(img => !img.alt)?.length || 0;
+    const totalLinks = links?.length || 0;
+    const externalLinks = links?.filter(link => link.type === 'external')?.length || 0;
+    const internalLinks = links?.filter(link => link.type === 'internal')?.length || 0;
+    const noFollowLinks = links?.filter(link => link.isNoFollow)?.length || 0;
+    
+    const h1Count = headings?.filter(h => h.tag === 'H1')?.length || 0;
+    const h2Count = headings?.filter(h => h.tag === 'H2')?.length || 0;
+    const h3Count = headings?.filter(h => h.tag === 'H3')?.length || 0;
+    
+    const wordCount = text?.split(/\s+/).length || 0;
+    
+    // Generate comprehensive HTML report
+    const htmlReport = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueprint SEO Report - ${domain}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; }
+        header { 
+            border-bottom: 3px solid #667eea;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+        }
+        h1 { color: #667eea; margin-bottom: 10px; font-size: 32px; }
+        .report-info { 
+            display: flex; 
+            justify-content: space-between; 
+            flex-wrap: wrap;
+            gap: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        .report-info div { display: flex; flex-direction: column; }
+        .report-info label { font-weight: 600; color: #333; }
+        
+        section { margin: 30px 0; }
+        section h2 { 
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .stat-card { 
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .stat-card .label { font-size: 12px; color: #666; text-transform: uppercase; font-weight: 600; }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #667eea; margin-top: 8px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { 
+            background: #667eea; 
+            color: white; 
+            padding: 12px; 
+            text-align: left;
+            font-weight: 600;
+        }
+        td { 
+            padding: 10px 12px; 
+            border-bottom: 1px solid #e0e0e0;
+        }
+        tr:nth-child(even) { background: #f8f9fa; }
+        
+        .heading-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 3px solid #ffa500;
+            border-radius: 3px;
+        }
+        
+        .link-item {
+            margin: 8px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            word-break: break-all;
+            font-size: 13px;
+        }
+        
+        .image-item {
+            margin: 8px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        .broken { color: #e74c3c; font-weight: 600; }
+        .warning { color: #f39c12; font-weight: 600; }
+        .success { color: #27ae60; font-weight: 600; }
+        
+        footer { 
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #999;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Blueprint SEO Audit Report</h1>
+            <div class="report-info">
+                <div>
+                    <label>Website URL</label>
+                    <span>${url}</span>
+                </div>
+                <div>
+                    <label>Generated Date</label>
+                    <span>${dateStr} at ${timeStr}</span>
+                </div>
+                <div>
+                    <label>Report Type</label>
+                    <span>Comprehensive Audit</span>
+                </div>
+            </div>
+        </header>
 
-OVERALL HEALTH SCORE: ${totalScore}%
+        <!-- METADATA SECTION -->
+        <section>
+            <h2>📋 Page Metadata</h2>
+            <div class="grid">
+                <div class="stat-card">
+                    <div class="label">Page Title</div>
+                    <div class="value" style="font-size: 16px; overflow-wrap: break-word;">${meta?.title || 'Not set'}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Meta Description</div>
+                    <div class="value" style="font-size: 14px; overflow-wrap: break-word;">${meta?.description || 'Not set'}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Word Count</div>
+                    <div class="value">${wordCount.toLocaleString()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Canonical URL</div>
+                    <div class="value" style="font-size: 12px; overflow-wrap: break-word;">${meta?.canonical || 'Not set'}</div>
+                </div>
+            </div>
+        </section>
 
-[METADATA & CONTENT SUMMARY]
-Title: ${meta.title || 'None'}
-Description: ${meta.description || 'None'}
-Word Count: ${meta.audit?.wordCount || 0} words
-External Scripts: ${meta.vitals?.resources?.scripts || 0}
-External Styles: ${meta.vitals?.resources?.styles || 0}
+        <!-- HEADINGS STRUCTURE SECTION -->
+        <section>
+            <h2>🏷️ Heading Structure</h2>
+            <div class="grid">
+                <div class="stat-card">
+                    <div class="label">Total Headings</div>
+                    <div class="value">${headings?.length || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">H1 Tags</div>
+                    <div class="value">${h1Count}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">H2 Tags</div>
+                    <div class="value">${h2Count}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">H3 Tags</div>
+                    <div class="value">${h3Count}</div>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <h3 style="color: #333; margin-bottom: 10px;">All Headings:</h3>
+                ${headings && headings.length > 0 ? headings.map(h => `
+                    <div class="heading-item">
+                        <strong style="color: #667eea;">${h.tag}</strong> - ${h.text}
+                    </div>
+                `).join('') : '<p style="color: #999;">No headings found</p>'}
+            </div>
+        </section>
 
-[HEADING STRUCTURE]
-Total Headings: ${headings.length}
-H1 Count: ${headings.filter(h => h.tag === 'H1').length}
-H2 Count: ${headings.filter(h => h.tag === 'H2').length}
+        <!-- LINKS SECTION -->
+        <section>
+            <h2>🔗 Link Audit</h2>
+            <div class="grid">
+                <div class="stat-card">
+                    <div class="label">Total Links</div>
+                    <div class="value">${totalLinks}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Internal Links</div>
+                    <div class="value" class="success">${internalLinks}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">External Links</div>
+                    <div class="value" class="warning">${externalLinks}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">NoFollow Links</div>
+                    <div class="value">${noFollowLinks}</div>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <h3 style="color: #333; margin-bottom: 10px;">Link Details:</h3>
+                ${links && links.length > 0 ? `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <th>Type</th>
+                                <th>NoFollow</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${links.map(link => `
+                                <tr>
+                                    <td style="font-size: 13px; word-break: break-all;">${link.href}</td>
+                                    <td>${link.type === 'internal' ? '<span class="success">Internal</span>' : '<span class="warning">External</span>'}</td>
+                                    <td>${link.isNoFollow ? '✓' : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p style="color: #999;">No links found</p>'}
+            </div>
+        </section>
 
-[IMAGE AUDIT]
-Total Images: ${meta.audit?.images?.total || 0}
-Images Missing Alt-Text: ${meta.audit?.images?.missingAlt || 0}
+        <!-- IMAGES SECTION -->
+        <section>
+            <h2>🖼️ Image Audit</h2>
+            <div class="grid">
+                <div class="stat-card">
+                    <div class="label">Total Images</div>
+                    <div class="value">${totalImages}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Missing Alt Text</div>
+                    <div class="value broken">${imagesWithoutAlt}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Broken Images</div>
+                    <div class="value broken">${brokenImages}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Optimized Images</div>
+                    <div class="value success">${totalImages - imagesWithoutAlt - brokenImages}</div>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <h3 style="color: #333; margin-bottom: 10px;">Image Details:</h3>
+                ${images && images.length > 0 ? images.map(img => `
+                    <div class="image-item">
+                        <strong>Alt:</strong> ${img.alt || '<span class="broken">Missing</span>'} | 
+                        <strong>Src:</strong> ${img.src.substring(0, 60)}... | 
+                        <strong>Status:</strong> ${img.isBroken ? '<span class="broken">Broken</span>' : '<span class="success">OK</span>'}
+                    </div>
+                `).join('') : '<p style="color: #999;">No images found</p>'}
+            </div>
+        </section>
 
-[PRIORITY FIXES]
-${calculatedFixes.length > 0 ? calculatedFixes.map(f => `- [${f.type.toUpperCase()}] ${f.text}`).join('\n') : '- No critical issues found! Page is healthy.'}
+        <!-- RECOMMENDATIONS SECTION -->
+        <section>
+            <h2>⚡ Quick Recommendations</h2>
+            <ul style="margin-left: 20px; color: #666;">
+                ${h1Count === 0 ? '<li style="color: #e74c3c;">❌ Add an H1 tag - Every page should have exactly one H1</li>' : h1Count > 1 ? '<li style="color: #f39c12;">⚠️ Multiple H1 tags detected - Consider having only one H1 per page</li>' : '<li style="color: #27ae60;">✓ H1 tag properly configured</li>'}
+                ${imagesWithoutAlt > 0 ? `<li style="color: #e74c3c;">❌ ${imagesWithoutAlt} images missing alt text - Add descriptive alt text for accessibility and SEO</li>` : '<li style="color: #27ae60;">✓ All images have alt text</li>'}
+                ${!meta?.canonical ? '<li style="color: #f39c12;">⚠️ Canonical URL not set - Add canonical tag to prevent duplicate content issues</li>' : '<li style="color: #27ae60;">✓ Canonical URL properly set</li>'}
+                ${wordCount < 300 ? '<li style="color: #f39c12;">⚠️ Low word count (${wordCount} words) - Consider expanding content for better SEO</li>' : wordCount > 3000 ? '<li style="color: #f39c12;">⚠️ Very high word count (${wordCount} words) - Keep readers engaged</li>' : '<li style="color: #27ae60;">✓ Content length is optimal</li>'}
+                ${externalLinks === 0 && totalLinks > 0 ? '<li style="color: #f39c12;">⚠️ No external links detected - Consider adding authoritative external references</li>' : ''}
+            </ul>
+        </section>
 
----------------------------------
-Generated by Blueprint SEO Extension
-    `.trim();
+        <footer>
+            <p>🚀 Blueprint SEO Extension | Professional Audit Report</p>
+            <p>This comprehensive report was generated by the Blueprint SEO extension for detailed website analysis.</p>
+        </footer>
+    </div>
+</body>
+</html>
+    `;
 
-    navigator.clipboard.writeText(report).then(() => {
-        const originalText = btnCopyReport.innerHTML;
-        btnCopyReport.innerHTML = '✅ Report Copied!';
-        setTimeout(() => btnCopyReport.innerHTML = originalText, 2000);
-    });
+    // Create blob and trigger download
+    const blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8' });
+    const link = document.createElement('a');
+    const fileName = `blueprint-seo-report-${domain.replace(/\./g, '-')}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.html`;
+    
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    
+    // Show success message
+    const originalText = btnCopyReport.innerHTML;
+    btnCopyReport.innerHTML = '✅ Report Downloaded!';
+    setTimeout(() => btnCopyReport.innerHTML = originalText, 2000);
   }
 
   async function checkSiteArchitecture(meta) {
