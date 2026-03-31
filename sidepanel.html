@@ -1829,8 +1829,9 @@
         <div id="lock-serp-bulk" class="pro-lock-overlay" style="display: none;">
             <div class="pro-lock-content">
                 <svg class="pro-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <div style="font-size: 10px; font-weight: 800; color: #fff; margin-bottom: 10px;">PRO BULK AUDIT</div>
+                <div style="font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 10px;">SERP INSIGHTS PRO</div>
                 <button class="btn-pro-unlock btn-open-auth">Unlock Pro</button>
+                <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">Analyze SERP rankings and top competitor content strategies</div>
             </div>
         </div>
 
@@ -2006,8 +2007,9 @@
           <div id="lock-social-preview" class="pro-lock-overlay" style="display: none;">
               <div class="pro-lock-content">
                   <svg class="pro-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                  <div style="font-size: 10px; font-weight: 800; color: #fff; margin-bottom: 10px;">SOCIAL PREVIEW TOOL</div>
+                  <div style="font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 10px;">SOCIAL PREVIEW PRO</div>
                   <button class="btn-pro-unlock btn-open-auth">Unlock Pro</button>
+                  <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">See exactly how your content appears on Facebook, Twitter & LinkedIn</div>
               </div>
           </div>
 
@@ -2163,7 +2165,7 @@
                 <svg class="pro-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 <div style="font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 10px;">KEYWORD DENSITY PRO</div>
                 <button class="btn-pro-unlock btn-open-auth">Unlock Pro</button>
-                <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">Unlock 2-word and 3-word phrase extraction</div>
+                <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">Extract keyword density & 2-word phrase analysis with correlation audits</div>
             </div>
         </div>
 
@@ -2204,9 +2206,9 @@
       <div id="lock-links-tab" class="pro-lock-overlay" style="display: none; height: 100%; border-radius: 0; top: 0;">
           <div class="pro-lock-content">
               <svg class="pro-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              <div style="font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 10px;">ADVANCED LINK AUDITOR</div>
+              <div style="font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 10px;">LINK AUDITOR PRO</div>
               <button class="btn-pro-unlock btn-open-auth">Unlock Pro</button>
-              <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">Audit 100+ internal & external links with status codes</div>
+              <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">Audit 100+ internal & external links with HTTP status codes and analytics</div>
           </div>
       </div>
 
@@ -2281,9 +2283,9 @@
       <div id="lock-images-tab" class="pro-lock-overlay" style="display: none; height: 100%; border-radius: 0; top: 0;">
           <div class="pro-lock-content">
               <svg class="pro-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              <div style="font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 10px;">IMAGE PERFORMANCE PRO</div>
+              <div style="font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 10px;">IMAGE PERFORMANCE PRO</div>
               <button class="btn-pro-unlock btn-open-auth">Unlock Pro</button>
-              <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">Detailed ALT map, broken image detection, and size audits</div>
+              <div style="font-size: 10px; color: var(--text-grey); margin-top: 15px;">Full ALT analysis, broken image detection, and performance optimization tips</div>
           </div>
       </div>
 
@@ -2554,6 +2556,29 @@
     #social-preview-card:hover {
       border-color: var(--accent-cyan) !important;
     }
+
+    /* Toast Notifications */
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(400px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(400px);
+      }
+    }
   </style>
 
   <div id="seo-tooltip">
@@ -2582,7 +2607,7 @@
                     <label class="auth-label">Password</label>
                     <input type="password" placeholder="••••••••" class="auth-input">
                 </div>
-                <button id="btn-login-submit" class="btn-auth-primary">GO TO DASHBOARD</button>
+                <button id="btn-login-submit" class="btn-auth-primary">LOGIN</button>
                 <div class="auth-switch-text">Don't have an account? <span class="auth-link" id="switch-to-signup">Sign Up Free</span></div>
             </div>
             <div id="auth-signup-view" style="display: none;">
@@ -2598,7 +2623,7 @@
                     <label class="auth-label">Desired Password</label>
                     <input type="password" placeholder="••••••••" class="auth-input">
                 </div>
-                <button id="btn-signup-submit" class="btn-auth-primary">CREATE MY PRO ACCOUNT</button>
+                <button id="btn-signup-submit" class="btn-auth-primary">SIGN UP</button>
                 <div class="auth-switch-text">Already a member? <span class="auth-link" id="switch-to-login">Login</span></div>
             </div>
         </div>
